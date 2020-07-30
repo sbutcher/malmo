@@ -18,10 +18,11 @@
 # ===================================================================================================================
 
 branch=apocrita
-boost=1_65_0
-python=2.7
+boost=1_66_0
+python=3.6
 interactive=0
-test_results_dir=/build/malmo/test_results
+BUILD_DIR=/build
+test_results_dir=$BUILD_DIR/malmo/test_results
 verbose_mode=1
 run_tests=1
 swallow_display=1
@@ -64,9 +65,9 @@ mkdir -p $test_results_dir
 
 echo "Fetching Malmo..."
 {
-    git clone --branch $branch https://github.com/sbutcher/malmo.git /build/malmo/MalmoPlatform
-    wget https://raw.githubusercontent.com/bitfehler/xs3p/1b71310dd1e8b9e4087cf6120856c5f701bd336b/xs3p.xsl -P /build/malmo/MalmoPlatform/Schemas
-    cd /build/malmo/MalmoPlatform
+    git clone --branch $branch https://github.com/sbutcher/malmo.git $BUILD_DIR/malmo/MalmoPlatform
+    wget https://raw.githubusercontent.com/bitfehler/xs3p/1b71310dd1e8b9e4087cf6120856c5f701bd336b/xs3p.xsl -P $BUILD_DIR/malmo/MalmoPlatform/Schemas
+    cd $BUILD_DIR/malmo/MalmoPlatform
 }
 
 if [ $interactive -gt 0 ]; then
@@ -80,9 +81,9 @@ echo "Building Malmo..."
 {
     mkdir build
     cd build
-    cmake -DSTATIC_BOOST=ON -DBoost_INCLUDE_DIR=/build/malmo/boost/boost_$boost/include -DUSE_PYTHON_VERSIONS=$python -DCMAKE_BUILD_TYPE=Release ..
+    cmake -DSTATIC_BOOST=ON -DBoost_INCLUDE_DIR=$BUILD_DIR/malmo/boost/boost_$boost/include -DUSE_PYTHON_VERSIONS=$python -DCMAKE_BUILD_TYPE=Release ..
     make install
-} | tee $test_results_dir/build_malmo.log >&3
+} | tee $test_results_dir$BUILD_DIR_malmo.log >&3
 #result=$?;
 result=0
 if [ $result -ne 0 ]; then
@@ -98,13 +99,13 @@ if [ $run_tests -gt 0 ]; then
             xpra start :100
             export DISPLAY=:100
         fi
-        cd /build/malmo/MalmoPlatform/build
+        cd $BUILD_DIR/malmo/MalmoPlatform$BUILD_DIR
         ctest -VV
     } | tee $test_results_dir/test_malmo.log >&3
     #result=$?;
     result=0
     # Copy the Minecraft logs over for forensic purposes:
-    cp -r /build/malmo/MalmoPlatform/Minecraft/run/logs $test_results_dir/minecraft_run_logs
+    cp -r $BUILD_DIR/malmo/MalmoPlatform/Minecraft/run/logs $test_results_dir/minecraft_run_logs
     if [ $result -ne 0 ]; then
         echo "Malmo tests failed!!"
         exit $result
@@ -113,8 +114,8 @@ fi
 
 # Build the package:
 echo "Building Malmo package..."
-cd /build/malmo/MalmoPlatform/build
-make package | tee /build/malmo/build_malmo_package.log >&3
+cd $BUILD_DIR/malmo/MalmoPlatform$BUILD_DIR
+make package | tee $BUILD_DIR/malmo$BUILD_DIR_malmo_package.log >&3
 #result=#$?;
 result=0
 if [ $result -eq 0 ]; then
