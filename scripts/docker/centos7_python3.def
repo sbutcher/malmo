@@ -1,0 +1,77 @@
+BootStrap: yum
+OSVersion: 7
+MirrorURL: https://www.mirrorservice.org/sites/mirror.centos.org/%{OSVERSION}/os/$basearch/
+UpdateURL: https://www.mirrorservice.org/sites/mirror.centos.org/%{OSVERSION}/updates/$basearch/
+Include: yum
+
+%help
+    Centos7 container providing latest python3 version from EPEL repository
+
+
+%post
+    yum -y install epel-release
+    rpm --import http://li.nux.ro/download/nux/RPM-GPG-KEY-nux.ro
+    rpm -Uvh http://li.nux.ro/download/nux/dextop/el7/x86_64/nux-dextop-release-0-5.el7.nux.noarch.rpm
+
+# Add repo for xpra
+rpm --import "http://winswitch.org/gpg.asc"
+curl https://winswitch.org/downloads/CentOS/winswitch.repo | tee /etc/yum.repos.d/winswitch.repo'
+
+yum install -y \
+    git \
+    python3-pip \
+    python36-devel \
+    java-1.8.0-openjdk-devel \
+    swig \
+    doxygen \
+    libxslt \
+    ffmpeg \
+    ffmpeg-devel \
+    gcc-c++ \
+    bzip2-devel \
+    tkinter \
+    python36-tkinter \
+    wget \
+    software-properties-common \
+    xpra \
+	libgl1-mesa-dri \
+    make \
+    python36-pip \
+    dos2unix \
+    zlib-devel
+
+update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+
+# Note the trailing slash - essential!
+export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk/
+
+#RUN rpm --import "http://keyserver.ubuntu.com/pks/lookup?op=get&search=0x3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF"
+
+# BOOST:
+mkdir /build/malmo/boost
+cd /build/malmo/boost
+echo "using python : 3.6 : /usr/bin/python3 : /usr/include/python3.6m : /usr/lib ;" > /home/malmo/user-config.jam
+wget http://sourceforge.net/projects/boost/files/boost/1.66.0/boost_1_66_0.tar.gz
+tar xvf boost_1_66_0.tar.gz
+cd /buid/malmo/boost/boost_1_66_0
+./bootstrap.sh --prefix=.
+./b2 link=static cxxflags=-fPIC install
+
+# CMAKE (newer version than OS package required)
+mkdir /build/malmo/cmake
+cd /build/malmo/cmake
+wget https://cmake.org/files/v3.11/cmake-3.11.0.tar.gz
+tar xvf cmake-3.11.0.tar.gz
+cd /build/malmo/cmake/cmake-3.11.0
+./bootstrap
+make -j4
+make install
+
+pip3 install future pillow matplotlib==2.2.3
+
+cd /build/malmo
+git clone https://github.com/sbutcher/malmo.git MalmoPlatform
+cd /build/malmo/MalmoPlatform/scripts/docker
+git checkout apocrita
+export MALMO_XSD_PATH=/build/malmo/MalmoPlatform/Schemas
+./build.sh -boost 1_66_0 -python 3.6
